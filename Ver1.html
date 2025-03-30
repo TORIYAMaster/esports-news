@@ -109,9 +109,14 @@
   <script>
     const container = document.getElementById('news-container');
     const categorySelect = document.getElementById('category');
-    const rssUrl = 'https://news.google.com/rss/search?q=e%E3%82%B9%E3%83%9D%E3%83%BC%E3%83%84&hl=ja&gl=JP&ceid=JP:ja';
-    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+    const rssUrls = [
+      'https://news.google.com/rss/search?q=eスポーツ',
+      'https://news.google.com/rss/search?q=eスポーツ+体験',
+      'https://news.google.com/rss/search?q=eスポーツ+教室',
+      'https://news.google.com/rss/search?q=eスポーツ+教育'
+    ];
 
+    const apiUrls = rssUrls.map(url => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
     let allItems = [];
 
     function displayItems(filteredItems) {
@@ -126,7 +131,7 @@
 
         const img = document.createElement('img');
         img.className = 'thumbnail';
-        const mediaMatch = item.content.match(/<img.*?src=["'](.*?)["']/);
+        const mediaMatch = item.description.match(/<img.*?src=["'](.*?)["']/);
         img.src = mediaMatch ? mediaMatch[1] : 'https://placehold.jp/200x120.png';
         img.alt = 'thumbnail';
 
@@ -169,10 +174,10 @@
 
     categorySelect.addEventListener('change', filterItems);
 
-    fetch(apiUrl)
-      .then(response => response.json())
-      .then(data => {
-        allItems = data.items;
+    Promise.all(apiUrls.map(url => fetch(url).then(res => res.json())))
+      .then(results => {
+        allItems = results.flatMap(res => res.items || []);
+        allItems.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
         filterItems();
         updateCategoryCounts();
       })

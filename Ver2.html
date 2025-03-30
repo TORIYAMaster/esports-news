@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>eスポーツ体験ナビ</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      color: #fff;
+    }
+    header {
+      background-color: #000;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    header p {
+      margin: 5px 0 10px;
+      font-size: 14px;
+    }
+    .filters {
+      text-align: center;
+      margin: 10px 0;
+    }
+    .filters select {
+      padding: 6px 10px;
+      font-size: 14px;
+      margin: 0 5px;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 25px;
+      display: flex;
+      margin: 10px;
+      width: 600px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+    .thumbnail {
+      width: 200px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 20px;
+      margin: 10px;
+    }
+    .card-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 10px;
+      color: black;
+    }
+    .card-content h3 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+    .card-content a {
+      color: #000;
+      text-decoration: none;
+    }
+    @media (max-width: 700px) {
+      .card {
+        flex-direction: column;
+        width: 90%;
+        align-items: center;
+      }
+      .thumbnail {
+        width: 90%;
+        height: auto;
+      }
+      .card-content {
+        align-items: center;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>eスポーツ体験ナビ</h1>
+    <p>Googleニュースの最新「eスポーツ」記事を自動表示</p>
+    <div class="filters">
+      <label for="category">カテゴリ：</label>
+      <select id="category">
+        <option value="all">すべて表示</option>
+        <option value="教室">教室</option>
+        <option value="福祉">福祉</option>
+        <option value="教育">教育</option>
+        <option value="その他">その他</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="container" id="news-container">
+    <p>読み込み中...</p>
+  </div>
+
+  <script>
+    const container = document.getElementById('news-container');
+    const categorySelect = document.getElementById('category');
+    const rssUrl = 'https://news.google.com/rss/search?q=e%E3%82%B9%E3%83%9D%E3%83%BC%E3%83%84&hl=ja&gl=JP&ceid=JP:ja';
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+    let allItems = [];
+
+    function displayItems(filteredItems) {
+      container.innerHTML = '';
+      if (filteredItems.length === 0) {
+        container.innerHTML = '<p>該当する記事が見つかりませんでした。</p>';
+        return;
+      }
+      filteredItems.slice(0, 20).forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const img = document.createElement('img');
+        img.className = 'thumbnail';
+        img.src = item.thumbnail || 'https://placehold.jp/200x120.png';
+        img.alt = 'thumbnail';
+
+        const content = document.createElement('div');
+        content.className = 'card-content';
+
+        const title = document.createElement('h3');
+        const trimmedTitle = item.title.length > 115 ? item.title.slice(0, 112) + '...' : item.title;
+        title.innerHTML = `<a href="${item.link}" target="_blank" rel="noopener">${trimmedTitle}</a>`;
+
+        content.appendChild(title);
+        card.appendChild(img);
+        card.appendChild(content);
+        container.appendChild(card);
+      });
+    }
+
+    function filterItems() {
+      const selectedCategory = categorySelect.value;
+      const categoryKeywords = selectedCategory === 'その他' ? ['体験', '講座', 'イベント'] : [selectedCategory];
+
+      const filtered = allItems.filter(item => {
+        const title = item.title;
+        const matchCategory = selectedCategory === 'all' || categoryKeywords.some(k => title.includes(k));
+        return matchCategory;
+      });
+
+      displayItems(filtered);
+      updateCategoryCounts();
+    }
+
+    function updateCategoryCounts() {
+      const options = categorySelect.options;
+      for (let i = 0; i < options.length; i++) {
+        const value = options[i].value;
+        if (value === 'all') continue;
+        const keywords = value === 'その他' ? ['体験', '講座', 'イベント'] : [value];
+        const count = allItems.filter(item => keywords.some(k => item.title.includes(k))).length;
+        options[i].textContent = `${value} (${count})`;
+      }
+    }
+
+    categorySelect.addEventListener('change', filterItems);
+
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        allItems = data.items;
+        filterItems();
+        updateCategoryCounts();
+      })
+      .catch(error => {
+        console.error('読み込みエラー:', error);
+        container.innerHTML = '<p>ニュースの読み込みに失敗しました。</p>';
+      });
+  </script>
+</body>
+</html>

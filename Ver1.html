@@ -120,13 +120,14 @@
         container.innerHTML = '<p>該当する記事が見つかりませんでした。</p>';
         return;
       }
-      filteredItems.slice(0, 20).forEach(item => {
+      filteredItems.slice(0, 50).forEach(item => {
         const card = document.createElement('div');
         card.className = 'card';
 
         const img = document.createElement('img');
         img.className = 'thumbnail';
-        img.src = item.thumbnail || 'https://placehold.jp/200x120.png';
+        const mediaMatch = item.content.match(/<img.*?src=["'](.*?)["']/);
+        img.src = mediaMatch ? mediaMatch[1] : 'https://placehold.jp/200x120.png';
         img.alt = 'thumbnail';
 
         const content = document.createElement('div');
